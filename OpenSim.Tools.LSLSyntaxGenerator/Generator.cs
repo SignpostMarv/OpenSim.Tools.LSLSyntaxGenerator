@@ -64,8 +64,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             switch (format)
             {
                 case "json":
-            Console.Write(OSDParser.SerializeJson(
-                    output, true).ToJson().ToString());
+                    Console.Write(OSDParser.SerializeJson(
+                            output, true).ToJson().ToString());
                     break;
                 default:
                     Console.Error.Write("Unsupported format specified");
