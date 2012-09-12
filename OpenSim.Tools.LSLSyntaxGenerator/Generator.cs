@@ -60,10 +60,10 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         {
             OSDMap output = new OSDMap();
 
-            output["LSL"] = (OSD)ToOSDArray(GetMethods(typeof(ILSL_Api)));
-            output["OSSL"] = (OSD)ToOSDArray(GetMethods(typeof(IOSSL_Api)));
-            output["LS"] = (OSD)ToOSDArray(GetMethods(typeof(ILS_Api)));
-            output["MOD"] = (OSD)ToOSDArray(GetMethods(typeof(IMOD_Api)));
+            output["LSL"] = (OSD)GetMethods(typeof(ILSL_Api));
+            output["OSSL"] = (OSD)GetMethods(typeof(IOSSL_Api));
+            output["LS"] = (OSD)GetMethods(typeof(ILS_Api));
+            output["MOD"] = (OSD)GetMethods(typeof(IMOD_Api));
             output["ScriptConstants"] = (OSD)ToOSDArray(ScriptConstants());
 
             return output;
@@ -87,13 +87,26 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        private static List<string> GetMethods(Type type)
+        private static OSDMap GetMethods(Type type)
         {
-            List<string> resp = new List<string>();
+            OSDMap resp = new OSDMap();
 
             foreach (MethodInfo method in type.GetMethods())
             {
-                resp.Add(method.Name);
+                OSDMap temp = new OSDMap();
+
+                // ":return" isn't a valid lazy JSON object key nor is it a
+                // valid c# parameter name, so we're using that to indicate
+                // the return type. Any future non-argument metadata will be
+                // added in this fashion in future.
+                temp[":return"] = method.ReturnType.Name;
+
+                foreach (ParameterInfo param in method.GetParameters())
+                {
+                    temp[param.Name] = param.ParameterType.Name;
+                }
+
+                resp[method.Name] = temp;
             }
 
             return resp;
