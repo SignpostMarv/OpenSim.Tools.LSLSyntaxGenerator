@@ -52,6 +52,30 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     output, true).ToJson().ToString());
         }
 
+        public static readonly Dictionary<string, Type> ScriptAPIs = new Dictionary<string, Type>{
+            {"LSL", typeof(ILSL_Api)},
+            {"OSSL", typeof(IOSSL_Api)},
+            {"LS", typeof(ILS_Api)},
+            {"MOD", typeof(IMOD_Api)}
+        };
+
+        public static readonly Dictionary<string, List<string>> ExcludedFromOutput = new Dictionary<string, List<string>>{
+            {"LSL", new List<string>{
+                "GetPrimitiveParamsEx",
+                "SetPrimitiveParamsEx",
+                "state"
+            }},
+            {"OSSL", new List<string>{
+                "CheckThreatLevel"
+            }},
+            {"LS", new List<string>{
+
+            }},
+            {"MOD", new List<string>{
+
+            }}
+        };
+
         /// <summary>
         /// Gets the LSL Syntax helper data
         /// </summary>
@@ -60,10 +84,11 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         {
             OSDMap output = new OSDMap();
 
-            output["LSL"] = (OSD)GetMethods(typeof(ILSL_Api));
-            output["OSSL"] = (OSD)GetMethods(typeof(IOSSL_Api));
-            output["LS"] = (OSD)GetMethods(typeof(ILS_Api));
-            output["MOD"] = (OSD)GetMethods(typeof(IMOD_Api));
+            foreach (KeyValuePair<string, Type> kvp in ScriptAPIs)
+            {
+                output[kvp.Key] = (OSD)GetMethods(kvp.Key);
+            }
+
             output["ScriptConstants"] = (OSD)ToOSDArray(ScriptConstants());
 
             return output;
@@ -87,12 +112,24 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        private static OSDMap GetMethods(Type type)
+        private static OSDMap GetMethods(string typeLabel)
         {
             OSDMap resp = new OSDMap();
 
+            if (!ScriptAPIs.ContainsKey(typeLabel))
+                return resp;
+
+            Type type = ScriptAPIs[typeLabel];
+
+            List<string> excludes = new List<string>(0);
+            if (ExcludedFromOutput.ContainsKey(typeLabel))
+                excludes = ExcludedFromOutput[typeLabel];
+
             foreach (MethodInfo method in type.GetMethods())
             {
+                if (excludes.Contains(method.Name))
+                    continue;
+
                 OSDMap temp = new OSDMap();
 
                 // ":return" isn't a valid lazy JSON object key nor is it a
