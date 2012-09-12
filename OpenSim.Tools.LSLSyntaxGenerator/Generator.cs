@@ -185,6 +185,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     resp.Add(field.Name);
             }
 
+            resp.Sort();
+
             return resp;
         }
     }
