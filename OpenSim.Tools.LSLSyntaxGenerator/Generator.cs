@@ -48,8 +48,29 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         {
             OSDMap output = SyntaxHelpers();
 
+            string format = "json";
+
+            foreach (string arg in args)
+            {
+                if (arg.StartsWith("--format="))
+                {
+                    format = arg.Substring(9);
+                    break;
+                }
+            }
+
+            format = format.ToLower();
+
+            switch (format)
+            {
+                case "json":
             Console.Write(OSDParser.SerializeJson(
                     output, true).ToJson().ToString());
+                    break;
+                default:
+                    Console.Error.Write("Unsupported format specified");
+                    break;
+            }
         }
 
         public static readonly Dictionary<string, Type> ScriptAPIs = new Dictionary<string, Type>{
