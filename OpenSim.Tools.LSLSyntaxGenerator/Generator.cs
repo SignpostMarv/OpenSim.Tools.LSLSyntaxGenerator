@@ -41,21 +41,15 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
     class LSLSyntaxGenerator
     {
         /// <summary>
-        /// Generates and writes the LSL Syntax helper data to a JSON file
+        /// Generates and writes the LSL Syntax helper data to stdout
         /// </summary>
         /// <param name="args"></param>
         public static void Main(string[] args)
         {
             OSDMap output = SyntaxHelpers();
 
-            File.WriteAllText("../doc/opensim.lsl.syntax-helper.json",
-                    OSDParser.SerializeJson(output, true).ToJson().ToString(),
-                    Encoding.UTF8);
-
-            Console.Write("Done");
-            while (true)
-            {
-            }
+            Console.Write(OSDParser.SerializeJson(
+                    output, true).ToJson().ToString());
         }
 
         /// <summary>

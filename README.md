@@ -4,8 +4,7 @@ OpenSim.Tools.LSLSyntaxGenerator directory to the OpenSim addon-modules
 directory, run the appropriate prebuild script then compile.
 
 # Using
-1. Run bin/OpenSim.Tools.LSLSyntaxGenerator.exe
-2. View the generated files in the opensim doc directory
+1. Run bin/OpenSim.Tools.LSLSyntaxGenerator.exe > path/to/file.json
 
 
 # Support
