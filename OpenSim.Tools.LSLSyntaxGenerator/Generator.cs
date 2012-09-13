@@ -256,7 +256,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     "[[:Category:OSSL Functions|OSSL]]");
 
             string link = "* [[{0}]]";
-            string linkHideDocumented = "{{{{#ifexist: {0}||* [[{0}]]" + "\n" + "}}}}";
+            string linkHideDocumented = "{{{{#ifexist: {0}||" + link + "\n" + "}}}}";
             string linkLSL = "* [https://wiki.secondlife.com/wiki/{0} {0}]";
 
             foreach (string API in input.Keys)
@@ -281,8 +281,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                         output.Add(string.Format(header, API).Trim());
                     }
 
-                    if (!hideDocumented)
-                        output.Add("\n");
+                    if (hideDocumented)
+                        output.Add("\n\n");
                 }
 
                 if (API == "ScriptConstants")
@@ -325,7 +325,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 }
             }
 
-            return string.Join(hideDocumented ? "" : "\n", output.ToArray());
+            return string.Join(hideDocumented ? "" : "\n", output.ToArray()).Trim();
         }
     }
 }
