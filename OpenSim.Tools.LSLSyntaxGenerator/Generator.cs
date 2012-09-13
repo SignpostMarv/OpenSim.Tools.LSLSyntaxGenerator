@@ -33,6 +33,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
+using Nini.Util;
+
 using OpenMetaverse.StructuredData;
 
 using OpenSim.Region.ScriptEngine.Shared.ScriptBase;
@@ -49,32 +51,30 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         public static void Main(string[] args)
         {
             List<string> argsList = new List<string>(args);
+            ArgvParser argv = new ArgvParser(args);
 
-            string format = "json";
-
-            foreach (string arg in args)
-            {
-                if (arg.StartsWith("--format="))
-                {
-                    format = arg.Substring(9);
-                    break;
-                }
-            }
-
-            format = format.ToLower();
+            string format = argv["format"].ToLower();
+            string function = argv["function"].ToLower();
 
             switch (format)
             {
                 case "json":
-                    Console.Write(JSON());
+                    Console.Write(JSON(function));
                     break;
                 case "xml":
                 case "llsd":
-                    Console.Write(LLSD());
+                    Console.Write(LLSD(function));
                     break;
                 case "mediawiki":
-                    Console.Write(MediaWiki(2,
-                            argsList.Contains("--hide-documented")));
+                    if (function == string.Empty)
+                    {
+                        Console.Write(MediaWiki(2,
+                                argsList.Contains("--hide-documented")));
+                    }
+                    else
+                    {
+                        Console.Write(MediaWiki(function));
+                    }
                     break;
                 default:
                     Console.Error.Write("Unsupported format specified");
@@ -121,6 +121,36 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             output["ScriptConstants"] = ScriptConstants();
 
             return output;
+        }
+
+        public static Dictionary<string, IEnumerable> SyntaxHelpers(string function)
+        {
+            Dictionary<string, IEnumerable> syntax = SyntaxHelpers();
+
+            if (function != string.Empty)
+            {
+                foreach (KeyValuePair<string, IEnumerable> kvp in syntax)
+                {
+                    if (kvp.Value is Dictionary<string, List<Dictionary<string, string>>>)
+                    {
+                        foreach (string kvpFunc in ((Dictionary<string, List<Dictionary<string, string>>>)kvp.Value).Keys)
+                        {
+                            if (kvpFunc.ToLower() == function.ToLower())
+                            {
+                                return new Dictionary<string, IEnumerable>{
+                                    {kvp.Key, new Dictionary<string, List<Dictionary<string,string>>>{
+                                        {kvpFunc, ((Dictionary<string, List<Dictionary<string, string>>>)kvp.Value)[kvpFunc]}
+                                    }}
+                                };
+                            }
+                        }
+                    }
+                }
+
+                return new Dictionary<string, IEnumerable>(0);
+            }
+
+            return syntax;
         }
 
         /// <summary>
@@ -241,20 +271,97 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         /// JSON serialisation
         /// </summary>
         /// <returns>JSON serialisation of functions and constants</returns>
-        public static string JSON()
+        public static string JSON(string function)
         {
+            Dictionary<string, IEnumerable> syntax = SyntaxHelpers(function);
+            if (syntax.Count() < 1)
+            {
+                Console.Error.Write(string.Format(
+                        "No function named \"{0}\" could be found."));
+                return "";
+            }
+
             return OSDParser.SerializeJson(ToOSDMap(
-                    SyntaxHelpers()),true).ToJson().ToString();
+                    syntax), true).ToJson().ToString();
         }
 
         /// <summary>
         /// LLSD serialisation
         /// </summary>
         /// <returns>LLSD serialisation of functions and constants</returns>
-        public static string LLSD()
+        public static string LLSD(string function)
         {
+            Dictionary<string, IEnumerable> syntax = SyntaxHelpers(function);
+            if (syntax.Count() < 1)
+            {
+                Console.Error.Write(string.Format(
+                        "No function named \"{0}\" could be found."));
+                return "";
+            }
+
             return OSDParser.SerializeLLSDXmlString(
-                    ToOSDMap(SyntaxHelpers()));
+                    ToOSDMap(syntax));
+        }
+
+        private static List<string> FunctionSyntax(KeyValuePair<string, List<Dictionary<string, string>>> functionSignatures)
+        {
+            List<string> resp = new List<string>();
+
+            foreach(Dictionary<string, string> signature  in functionSignatures.Value)
+            {
+                List<string> args = new List<string>();
+                foreach(string arg in signature.Keys)
+                {
+                    if(!arg.StartsWith(":"))
+                        args.Add(string.Format("{1} {0}", arg, signature[arg]));
+                }
+
+                resp.Add(string.Format("{1} {0}({2})",
+                        functionSignatures.Key,
+                        signature.ContainsKey(":return") ? signature[":return"] : "void",
+                        string.Join(", ", args.ToArray())));
+            }
+
+            return resp;
+        }
+
+        public static string MediaWiki(string function)
+        {
+            Dictionary<string, IEnumerable> syntax = SyntaxHelpers(function);
+            if (syntax.Count() < 1)
+            {
+                Console.Error.Write(string.Format(
+                        "No function named \"{0}\" could be found."));
+                return "";
+            }
+            else if (syntax.Keys.First<string>() != "OSSL")
+            {
+                Console.Error.Write(string.Format(
+                        "{0} is not a supported API for single-function MediaWiki output"));
+            }
+
+            List<string> output = new List<string>();
+
+            Dictionary<string, List<Dictionary<string, string>>> functionDefinitions = (Dictionary<string, List<Dictionary<string, string>>>)syntax[syntax.Keys.First<string>()];
+
+            // correcting the casing
+            function = functionDefinitions.Keys.First<string>();
+
+            List<string> signatures = FunctionSyntax(
+                    new KeyValuePair<string, List<Dictionary<string, string>>>(
+                    function, functionDefinitions[function]));
+
+            foreach (string signature in signatures)
+            {
+                output.AddRange(new string[]{
+                    "{{osslfunc",
+                    "|function_syntax=" + signature,
+                    "|",
+                    "}}"
+                });
+            }
+
+            return string.Join("\n", output.ToArray()).Trim();
         }
 
         /// <summary>
