@@ -47,6 +47,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         public static void Main(string[] args)
         {
             OSDMap output = SyntaxHelpers();
+            List<string> argsList = new List<string>(args);
 
             string format = "json";
 
@@ -66,6 +67,10 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 case "json":
                     Console.Write(OSDParser.SerializeJson(
                             output, true).ToJson().ToString());
+                    break;
+                case "mediawiki":
+                    Console.Write(MediaWiki(2,
+                            argsList.Contains("--hide-documented")));
                     break;
                 default:
                     Console.Error.Write("Unsupported format specified");
@@ -188,6 +193,107 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             resp.Sort();
 
             return resp;
+        }
+
+        /// <summary>
+        /// MediaWiki syntax
+        /// </summary>
+        /// <param name="headerLevel">
+        /// -1 ommits API headers, 0 includes the API name but omits header
+        /// syntax, 1-6 will use the appropriate header syntax
+        /// </param>
+        /// <param name="hideDocumented">
+        /// if TRUE, uses the ParserFunctions extension ifexist function to
+        /// hide links, as well as omitting the ILSL_Api section entirely.
+        /// </param>
+        /// <returns>
+        /// MediaWiki syntax list of functions and contstants
+        /// </returns>
+        public static string MediaWiki(int headerLevel, bool hideDocumented)
+        {
+            headerLevel = Math.Max(-1, Math.Min(6, headerLevel));
+            OSDMap input = SyntaxHelpers();
+
+            List<string> output = new List<string>();
+
+            string headerTags = new string('=', headerLevel);
+            string header = headerTags + " {0} " + headerTags;
+
+            string headerLSL = string.Format(header,
+                    "[[LSL_Status/Functions|LSL]]");
+            string headerOSSL = string.Format(header,
+                    "[[:Category:OSSL Functions|OSSL]]");
+
+            string link = "* [[{0}]]";
+            string linkHideDocumented = "{{{{#ifexist: {0}||* [[{0}]]" + "\n" + "}}}}";
+            string linkLSL = "* [https://wiki.secondlife.com/wiki/{0} {0}]";
+
+            foreach (string API in input.Keys)
+            {
+                if (headerLevel > 0)
+                {
+                    if (API == "LSL")
+                    {
+                        if (!hideDocumented)
+                            output.Add(headerLSL.Trim());
+                    }
+                    else if (API == "OSSL")
+                    {
+                        output.Add(headerOSSL.Trim());
+                    }
+                    else if (API == "ScriptConstants")
+                    {
+                        output.Add(string.Format(header, "Script Constants"));
+                    }
+                    else
+                    {
+                        output.Add(string.Format(header, API).Trim());
+                    }
+
+                    if (!hideDocumented)
+                        output.Add("\n");
+                }
+
+                if (API == "ScriptConstants")
+                {
+                    foreach (OSD osd in (OSDArray)input[API])
+                    {
+                        output.Add(string.Format(
+                                hideDocumented ? linkHideDocumented : link,
+                                osd.AsString()));
+                    }
+                }
+                else
+                {
+                    List<string> funcs = new List<string>(
+                            ((OSDMap)input[API]).Keys);
+                    funcs.Sort();
+
+                    if (API == "LSL")
+                    {
+                        if (!hideDocumented)
+                        {
+                            foreach (string func in funcs)
+                            {
+                                output.Add(string.Format(linkLSL, func));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (string func in funcs)
+                        {
+                            output.Add(string.Format(
+                                hideDocumented ? linkHideDocumented : link,
+                                func));
+                        }
+                    }
+
+                    output.Add("\n");
+                }
+            }
+
+            return string.Join(hideDocumented ? "" : "\n", output.ToArray());
         }
     }
 }

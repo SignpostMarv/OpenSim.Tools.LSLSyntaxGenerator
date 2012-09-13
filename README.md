@@ -6,6 +6,14 @@ directory, run the appropriate prebuild script then compile.
 # Using
 1. Run bin/OpenSim.Tools.LSLSyntaxGenerator.exe > path/to/file.json
 
+# Command-Line Arguments
+
+## --format
+*	__--format=json__ is the default
+*	__--format=mediawiki__ will output mediawiki syntax suitable for use in the
+	OpenSim wiki
+*	*	__--hide-documented__ will add additional syntax that will hide
+		documented methods
 
 # Support
 Support can be obtained from SignpostMarv, either via the 
