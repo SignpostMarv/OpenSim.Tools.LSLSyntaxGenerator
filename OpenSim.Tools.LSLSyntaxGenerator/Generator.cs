@@ -26,8 +26,10 @@
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -46,7 +48,6 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         /// <param name="args"></param>
         public static void Main(string[] args)
         {
-            OSDMap output = SyntaxHelpers();
             List<string> argsList = new List<string>(args);
 
             string format = "json";
@@ -66,7 +67,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             {
                 case "json":
                     Console.Write(OSDParser.SerializeJson(
-                            output, true).ToJson().ToString());
+                            ToOSDMap(SyntaxHelpers()),
+                            true).ToJson().ToString());
                     break;
                 case "mediawiki":
                     Console.Write(MediaWiki(2,
@@ -106,16 +108,15 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         /// Gets the LSL Syntax helper data
         /// </summary>
         /// <returns>an OSDMap of script methods and constants</returns>
-        public static OSDMap SyntaxHelpers()
+        public static Dictionary<string, IEnumerable> SyntaxHelpers()
         {
-            OSDMap output = new OSDMap();
+            Dictionary<string, IEnumerable> output;
+            output = new Dictionary<string, IEnumerable>();
 
-            foreach (KeyValuePair<string, Type> kvp in ScriptAPIs)
-            {
-                output[kvp.Key] = (OSD)GetMethods(kvp.Key);
-            }
+            foreach (string API in ScriptAPIs.Keys)
+                output[API] = GetMethods(API);
 
-            output["ScriptConstants"] = (OSD)ToOSDArray(ScriptConstants());
+            output["ScriptConstants"] = ScriptConstants();
 
             return output;
         }
@@ -133,14 +134,10 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             })));
         }
 
-        /// <summary>
-        /// Uses reflection to get the methods defined on the type.
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        private static OSDMap GetMethods(string typeLabel)
+        private static Dictionary<string, Dictionary<string, string>> GetMethods(string typeLabel)
         {
-            OSDMap resp = new OSDMap();
+            Dictionary<string, Dictionary<string, string>> resp;
+            resp = new Dictionary<string, Dictionary<string, string>>();
 
             if (!ScriptAPIs.ContainsKey(typeLabel))
                 return resp;
@@ -156,20 +153,49 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 if (excludes.Contains(method.Name))
                     continue;
 
-                OSDMap temp = new OSDMap();
-
-                // ":return" isn't a valid lazy JSON object key nor is it a
-                // valid c# parameter name, so we're using that to indicate
-                // the return type. Any future non-argument metadata will be
-                // added in this fashion in future.
-                temp[":return"] = method.ReturnType.Name;
+                resp[method.Name] = new Dictionary<string, string>{
+                    // ":return" isn't a valid lazy JSON object key nor is it a
+                    // valid c# parameter name, so we're using that to indicate
+                    // the return type. Any future non-argument metadata will be
+                    // added in this fashion in future.
+                    {":return", method.ReturnType.Name}
+                };
 
                 foreach (ParameterInfo param in method.GetParameters())
-                {
-                    temp[param.Name] = param.ParameterType.Name;
-                }
+                    resp[method.Name][param.Name] = param.ParameterType.Name;
+            }
 
-                resp[method.Name] = temp;
+            return resp;
+        }
+
+        private static OSDMap ToOSDMap(
+                Dictionary<string, IEnumerable> dictionary)
+        {
+            OSDMap resp = new OSDMap();
+
+            foreach (KeyValuePair<string, IEnumerable> kvpA in dictionary)
+            {
+                if (kvpA.Value is IEnumerable<string>)
+                {
+                    resp[kvpA.Key] = ToOSDArray(new List<string>(
+                            (IEnumerable<string>)(kvpA.Value)));
+                }
+                else if (kvpA.Value is Dictionary<string, Dictionary<string, string>>)
+                {
+                    OSDMap temp = new OSDMap();
+                    foreach (KeyValuePair<string, Dictionary<string, string>> kvpB in kvpA.Value)
+                    {
+                        temp[kvpB.Key] = new OSDMap();
+                        foreach (KeyValuePair<string, string> kvpC in kvpB.Value)
+                            ((OSDMap)temp[kvpB.Key])[kvpC.Key] = kvpC.Value;
+                    }
+
+                    resp[kvpA.Key] = temp;
+                }
+                else
+                {
+                    throw new Exception("Cannot convert IEnumerable of type " + kvpA.Value.GetType().Name);
+                }
             }
 
             return resp;
@@ -212,7 +238,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         public static string MediaWiki(int headerLevel, bool hideDocumented)
         {
             headerLevel = Math.Max(-1, Math.Min(6, headerLevel));
-            OSDMap input = SyntaxHelpers();
+            Dictionary<string, IEnumerable> input = SyntaxHelpers();
 
             List<string> output = new List<string>();
 
@@ -256,17 +282,18 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 
                 if (API == "ScriptConstants")
                 {
-                    foreach (OSD osd in (OSDArray)input[API])
+                    foreach (string constant in input[API])
                     {
                         output.Add(string.Format(
                                 hideDocumented ? linkHideDocumented : link,
-                                osd.AsString()));
+                                constant));
                     }
                 }
                 else
                 {
-                    List<string> funcs = new List<string>(
-                            ((OSDMap)input[API]).Keys);
+                    Dictionary<string, Dictionary<string, string>> foo;
+                    foo = (Dictionary<string, Dictionary<string, string>>)input[API];
+                    List<string> funcs = foo.Keys.ToList<string>();
                     funcs.Sort();
 
                     if (API == "LSL")
