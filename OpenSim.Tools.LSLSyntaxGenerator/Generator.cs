@@ -277,23 +277,14 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             {
                 if (headerLevel > 0)
                 {
-                    if (API == "LSL")
-                    {
-                        if (!hideDocumented)
-                            output.Add(headerLSL.Trim());
-                    }
+                    if (API == "LSL" && !hideDocumented)
+                        output.Add(headerLSL.Trim());
                     else if (API == "OSSL")
-                    {
                         output.Add(headerOSSL.Trim());
-                    }
                     else if (API == "ScriptConstants")
-                    {
                         output.Add(string.Format(header, "Script Constants"));
-                    }
-                    else
-                    {
+                    else if (API != "LSL")
                         output.Add(string.Format(header, API).Trim());
-                    }
 
                     if (hideDocumented)
                         output.Add("\n\n");
