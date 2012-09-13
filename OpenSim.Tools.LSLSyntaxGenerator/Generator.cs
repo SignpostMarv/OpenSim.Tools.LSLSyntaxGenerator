@@ -70,6 +70,11 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                             ToOSDMap(SyntaxHelpers()),
                             true).ToJson().ToString());
                     break;
+                case "xml":
+                case "llsd":
+                    Console.Write(OSDParser.SerializeLLSDXmlString(ToOSDMap(
+                            SyntaxHelpers())));
+                    break;
                 case "mediawiki":
                     Console.Write(MediaWiki(2,
                             argsList.Contains("--hide-documented")));

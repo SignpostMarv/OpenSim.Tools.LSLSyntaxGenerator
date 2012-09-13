@@ -14,6 +14,8 @@ directory, run the appropriate prebuild script then compile.
 	OpenSim wiki
 *	*	__--hide-documented__ will add additional syntax that will hide
 		documented methods
+*	__--format=llsd__ will output an XML-serialised LLSD document
+*	__--format=xml__ is an alias for LLSD output
 
 # Support
 Support can be obtained from SignpostMarv, either via the 
