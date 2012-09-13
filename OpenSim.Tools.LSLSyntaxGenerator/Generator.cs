@@ -66,14 +66,11 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             switch (format)
             {
                 case "json":
-                    Console.Write(OSDParser.SerializeJson(
-                            ToOSDMap(SyntaxHelpers()),
-                            true).ToJson().ToString());
+                    Console.Write(JSON());
                     break;
                 case "xml":
                 case "llsd":
-                    Console.Write(OSDParser.SerializeLLSDXmlString(ToOSDMap(
-                            SyntaxHelpers())));
+                    Console.Write(LLSD());
                     break;
                 case "mediawiki":
                     Console.Write(MediaWiki(2,
@@ -238,6 +235,26 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             resp.Sort();
 
             return resp;
+        }
+
+        /// <summary>
+        /// JSON serialisation
+        /// </summary>
+        /// <returns>JSON serialisation of functions and constants</returns>
+        public static string JSON()
+        {
+            return OSDParser.SerializeJson(ToOSDMap(
+                    SyntaxHelpers()),true).ToJson().ToString();
+        }
+
+        /// <summary>
+        /// LLSD serialisation
+        /// </summary>
+        /// <returns>LLSD serialisation of functions and constants</returns>
+        public static string LLSD()
+        {
+            return OSDParser.SerializeLLSDXmlString(
+                    ToOSDMap(SyntaxHelpers()));
         }
 
         /// <summary>
