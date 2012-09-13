@@ -10,10 +10,8 @@ directory, run the appropriate prebuild script then compile.
 
 ## --format
 *	__--format=json__ is the default
-*	__--format=mediawiki__ will output mediawiki syntax suitable for use in the
-	OpenSim wiki
-*	*	__--hide-documented__ will add additional syntax that will hide
-		documented methods
+*	__--format=mediawiki__ will output mediawiki syntax suitable for use in the OpenSim wiki
+	*	__--hide-documented__ will add additional syntax that will hide documented methods
 *	__--format=llsd__ will output an XML-serialised LLSD document
 *	__--format=xml__ is an alias for LLSD output
 
