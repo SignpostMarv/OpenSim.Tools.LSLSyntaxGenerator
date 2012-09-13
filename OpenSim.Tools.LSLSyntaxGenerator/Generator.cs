@@ -154,10 +154,10 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     continue;
 
                 resp[method.Name] = new Dictionary<string, string>{
-                    // ":return" isn't a valid lazy JSON object key nor is it a
-                    // valid c# parameter name, so we're using that to indicate
-                    // the return type. Any future non-argument metadata will be
-                    // added in this fashion in future.
+                    // ":return" isn't a valid lazy JSON object key nor is it
+                    // a valid c# parameter name, so we're using that to
+                    // indicate the return type. Any future non-argument
+                    // metadata will be added in this fashion in future.
                     {":return", method.ReturnType.Name}
                 };
 
