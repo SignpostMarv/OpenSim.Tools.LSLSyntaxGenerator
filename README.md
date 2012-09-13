@@ -6,6 +6,35 @@ directory, run the appropriate prebuild script then compile.
 # Using
 1. Run bin/OpenSim.Tools.LSLSyntaxGenerator.exe > path/to/file.json
 
+# Serialisiation
+An example of the JSON serialisation:
+```javascript
+{
+	"OSSL" : {
+		"osNpcSay" : [{
+			":return":"Void",
+			"npc":"LSLString",
+			"message":"String"
+		},{
+			":return":"Void",
+			"npc":"LSLString",
+			"channel":"Int32",
+			"message":"String"
+		}]
+	}
+}
+```
+
+*	The first-level key indicates the script API
+*	The second-level key indicates the function name
+*	A function definition consists of an array of one or more maps with each
+	map representing a method signature.
+
+## function signatures
+*	The return type of the function is specified with the key __:return__
+*	The summary of the function is specified with the key __:summary__
+	_The LSL Syntax Generator does not currently include function summaries._
+
 # Command-Line Arguments
 
 ## --format
@@ -19,5 +48,4 @@ directory, run the appropriate prebuild script then compile.
 # Support
 Support can be obtained from SignpostMarv, either via the 
 [GitHub issue tracker](https://github.com/SignpostMarv/OpenSim.Tools.LSLSyntaxGenerator/issues)
-or on IRC where he usually hangs out in 
-[#opensim-dev](http://webchat.freenode.net/?channels=#opensim-dev)
+or on IRC where he usually hangs out on [Freenode](http://webchat.freenode.net/)
