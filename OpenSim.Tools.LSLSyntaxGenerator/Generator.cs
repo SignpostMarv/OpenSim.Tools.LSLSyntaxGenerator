@@ -139,10 +139,10 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             })));
         }
 
-        private static Dictionary<string, Dictionary<string, string>> GetMethods(string typeLabel)
+        private static Dictionary<string, List<Dictionary<string, string>>> GetMethods(string typeLabel)
         {
-            Dictionary<string, Dictionary<string, string>> resp;
-            resp = new Dictionary<string, Dictionary<string, string>>();
+            Dictionary<string, List<Dictionary<string, string>>> resp;
+            resp = new Dictionary<string, List<Dictionary<string, string>>>();
 
             if (!ScriptAPIs.ContainsKey(typeLabel))
                 return resp;
@@ -158,7 +158,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 if (excludes.Contains(method.Name))
                     continue;
 
-                resp[method.Name] = new Dictionary<string, string>{
+                Dictionary<string, string> temp;
+                temp = new Dictionary<string, string>{
                     // ":return" isn't a valid lazy JSON object key nor is it
                     // a valid c# parameter name, so we're using that to
                     // indicate the return type. Any future non-argument
@@ -167,7 +168,12 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 };
 
                 foreach (ParameterInfo param in method.GetParameters())
-                    resp[method.Name][param.Name] = param.ParameterType.Name;
+                    temp[param.Name] = param.ParameterType.Name;
+
+                if (!resp.ContainsKey(method.Name))
+                    resp[method.Name] = new List<Dictionary<string, string>>();
+
+                resp[method.Name].Add(temp);
             }
 
             return resp;
@@ -185,14 +191,22 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     resp[kvpA.Key] = ToOSDArray(new List<string>(
                             (IEnumerable<string>)(kvpA.Value)));
                 }
-                else if (kvpA.Value is Dictionary<string, Dictionary<string, string>>)
+                else if (kvpA.Value is Dictionary<string, List<Dictionary<string, string>>>)
                 {
                     OSDMap temp = new OSDMap();
-                    foreach (KeyValuePair<string, Dictionary<string, string>> kvpB in kvpA.Value)
+                    foreach (KeyValuePair<string, List<Dictionary<string, string>>> kvpB in kvpA.Value)
                     {
-                        temp[kvpB.Key] = new OSDMap();
-                        foreach (KeyValuePair<string, string> kvpC in kvpB.Value)
-                            ((OSDMap)temp[kvpB.Key])[kvpC.Key] = kvpC.Value;
+                        List<OSD> temp2 = new List<OSD>();
+                        foreach (Dictionary<string, string> kvpC in kvpB.Value)
+                        {
+                            OSDMap temp3 = new OSDMap();
+                            foreach (KeyValuePair<string, string> kvpD in kvpC)
+                                temp3[kvpD.Key] = kvpD.Value;
+
+                            temp2.Add(temp3);
+                        }
+
+                        temp[kvpB.Key] = new OSDArray(temp2);
                     }
 
                     resp[kvpA.Key] = temp;
@@ -296,8 +310,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 }
                 else
                 {
-                    Dictionary<string, Dictionary<string, string>> foo;
-                    foo = (Dictionary<string, Dictionary<string, string>>)input[API];
+                    Dictionary<string, List<Dictionary<string, string>>> foo;
+                    foo = (Dictionary<string, List<Dictionary<string, string>>>)input[API];
                     List<string> funcs = foo.Keys.ToList<string>();
                     funcs.Sort();
 
