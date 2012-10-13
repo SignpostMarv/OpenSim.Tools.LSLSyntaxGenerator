@@ -54,7 +54,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             ArgvParser argv = new ArgvParser(args);
 
             string format = argv["format"].ToLower();
-            string function = argv["function"].ToLower();
+            string function = argv["function"] != null ? argv["function"].ToLower() : string.Empty;
 
             switch (format)
             {
