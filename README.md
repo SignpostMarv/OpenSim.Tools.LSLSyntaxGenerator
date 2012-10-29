@@ -45,6 +45,11 @@ An example of the JSON serialisation:
 *	__--format=llsd__ will output an XML-serialised LLSD document
 *	__--format=xml__ is an alias for LLSD output
 
+## --function
+*	__--function__ is an optional parameter used to restrict output to only
+	the named function. For example, __--function=osListenRegex__ would
+	restrict output to just osListenRegex.
+
 # Support
 Support can be obtained from SignpostMarv, either via the 
 [GitHub issue tracker](https://github.com/SignpostMarv/OpenSim.Tools.LSLSyntaxGenerator/issues)
