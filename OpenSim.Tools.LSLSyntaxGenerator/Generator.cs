@@ -53,7 +53,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             List<string> argsList = new List<string>(args);
             ArgvParser argv = new ArgvParser(args);
 
-            string format = argv["format"].ToLower();
+            string format = argv["format"] != null ? argv["format"].ToLower() : "json";
             string function = argv["function"] != null ? argv["function"].ToLower() : string.Empty;
 
             switch (format)
