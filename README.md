@@ -33,7 +33,6 @@ An example of the JSON serialisation:
 ## function signatures
 *	The return type of the function is specified with the key __:return__
 *	The summary of the function is specified with the key __:summary__
-	_The LSL Syntax Generator does not currently include function summaries._
 
 # Command-Line Arguments
 
@@ -49,6 +48,21 @@ An example of the JSON serialisation:
 *	__--function__ is an optional parameter used to restrict output to only
 	the named function. For example, __--function=osListenRegex__ would
 	restrict output to just osListenRegex.
+
+## --doxygen
+*	__--doxygen__ should be the path to the directory containing
+	doxygen-generated XML for OpenSim.
+
+# FAQ
+
+## Why are summaries not included in the output?
+The [Doxygen](http://www.stack.nl/~dimitri/doxygen/index.html) config file
+must be configured to generate [XML output](http://www.stack.nl/~dimitri/doxygen/config.html#cfg_generate_xml).
+If Doxygen cannot generate XML for OpenSim, check the progress of
+[OpenSim mantis 6387](http://opensimulator.org/mantis/view.php?id=6387)
+before [filing an issue on this project](https://github.com/SignpostMarv/OpenSim.Tools.LSLSyntaxGenerator/issues).
+Finally, the method might not actually be documented in the OpenSim source,
+preventing any summaries from being generated.
 
 # Support
 Support can be obtained from SignpostMarv, either via the 

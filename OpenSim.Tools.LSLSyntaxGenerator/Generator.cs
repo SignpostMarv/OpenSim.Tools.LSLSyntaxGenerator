@@ -32,6 +32,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Xml;
+using System.Xml.XPath;
 
 using Nini.Util;
 
@@ -55,6 +57,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 
             string format = argv["format"] != null ? argv["format"].ToLower() : "json";
             string function = argv["function"] != null ? argv["function"].ToLower() : string.Empty;
+            DoxygenXMLDirectory = argv["doxygen"] != null ? argv["doxygen"].Trim() : string.Empty;
 
             switch (format)
             {
@@ -105,6 +108,86 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 
             }}
         };
+
+        public static string DoxygenXMLDirectory { get; private set; }
+
+        private static XPathDocument m_doxygenIndexFile = null;
+
+        private static Dictionary<string, XPathNavigator> m_XPathNav = new Dictionary<string, XPathNavigator>();
+
+        private static readonly string m_XPathQuery_interfaceMethod =
+                "//compound[@kind='interface']/member[@kind='function']/name[text()='{0}']/..";
+        private static readonly string m_XPathQuery_interfaceMethodDocs =
+                "//memberdef[@kind='function'][@prot='public'][@id='{0}']/briefdescription";
+
+        private static string[] GetDoxygenSummary(string function)
+        {
+            if (m_doxygenIndexFile == null)
+            {
+                if (DoxygenXMLDirectory != string.Empty)
+                {
+                    if (File.Exists(DoxygenXMLDirectory + System.IO.Path.DirectorySeparatorChar + "index.xml"))
+                    {
+                        m_doxygenIndexFile = new XPathDocument(DoxygenXMLDirectory + System.IO.Path.DirectorySeparatorChar + "index.xml");
+                        m_XPathNav["index.xml"] = m_doxygenIndexFile.CreateNavigator();
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("Could not find Doxygen XML index file:" + DoxygenXMLDirectory + System.IO.Path.DirectorySeparatorChar + "index.xml");
+                    }
+                }
+                else
+                {
+                    Console.Error.WriteLine("No doxygen xml directory path specified.");
+                }
+            }
+
+            if (m_XPathNav.ContainsKey("index.xml"))
+            {
+                XPathNodeIterator query = m_XPathNav["index.xml"].Select(string.Format(m_XPathQuery_interfaceMethod, function));
+                if (query.Count > 0)
+                {
+                    Dictionary<string, List<string>> refids = new Dictionary<string, List<string>>();
+                    while (query.MoveNext())
+                    {
+                        string refid = query.Current.GetAttribute("refid", string.Empty);
+                        string interfacefile = refid.Substring(0, refid.Length - 35);
+
+                        if (!m_XPathNav.ContainsKey(interfacefile + ".xml"))
+                        {
+                            m_XPathNav[interfacefile + ".xml"] = (new XPathDocument(DoxygenXMLDirectory + Path.DirectorySeparatorChar + interfacefile + ".xml")).CreateNavigator();
+                        }
+
+                        if (!refids.ContainsKey(interfacefile))
+                            refids[interfacefile] = new List<string>();
+
+                        refids[interfacefile].Add(refid);
+                    }
+
+                    List<string> results = new List<string>();
+
+                    foreach (KeyValuePair<string, List<string>> kvp in refids)
+                    {
+                        foreach (string refid in kvp.Value)
+                        {
+                            XPathNodeIterator docs = m_XPathNav[kvp.Key + ".xml"].Select(string.Format(m_XPathQuery_interfaceMethodDocs, refid));
+                            while (docs.MoveNext())
+                            {
+                                results.Add(docs.Current.ToString().Replace("  ", " ").Trim());
+                            }
+                        }
+                    }
+
+                    return results.ToArray();
+                }
+                else
+                {
+                    Console.Error.WriteLine("No XML nodes found.");
+                }
+            }
+
+            return new string[0];
+        }
 
         /// <summary>
         /// Gets the LSL Syntax helper data
@@ -199,6 +282,11 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 
                 if (!resp.ContainsKey(method.Name))
                     resp[method.Name] = new List<Dictionary<string, string>>();
+
+                // this won't quite work for multi-implementation methods
+                string[] methodDocs = GetDoxygenSummary(method.Name);
+                if (methodDocs.Length > 0)
+                    temp[":summary"] = methodDocs[resp[method.Name].Count];
 
                 resp[method.Name].Add(temp);
             }
@@ -307,12 +395,12 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         {
             List<string> resp = new List<string>();
 
-            foreach(Dictionary<string, string> signature  in functionSignatures.Value)
+            foreach (Dictionary<string, string> signature in functionSignatures.Value)
             {
                 List<string> args = new List<string>();
-                foreach(string arg in signature.Keys)
+                foreach (string arg in signature.Keys)
                 {
-                    if(!arg.StartsWith(":"))
+                    if (!arg.StartsWith(":"))
                         args.Add(string.Format("{1} {0}", arg, signature[arg]));
                 }
 
@@ -351,14 +439,24 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     new KeyValuePair<string, List<Dictionary<string, string>>>(
                     function, functionDefinitions[function]));
 
+            int i=0;
+
             foreach (string signature in signatures)
             {
-                output.AddRange(new string[]{
+                List<string> temp = new List<string>{
                     "{{osslfunc",
                     "|function_syntax=" + signature,
+                };
+                if(functionDefinitions[function][i].ContainsKey(":summary"))
+                {
+                    temp.Add("|description=" + functionDefinitions[function][i][":summary"]);
+                }
+                temp.AddRange(new string[]{
                     "|",
                     "}}"
                 });
+                output.AddRange(temp);
+                ++i;
             }
 
             return string.Join("\n", output.ToArray()).Trim();
