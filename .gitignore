@@ -1,3 +1,4 @@
 *.csproj
 *.csproj.user
 */obj/
+geshi/ossl/ossl.json
