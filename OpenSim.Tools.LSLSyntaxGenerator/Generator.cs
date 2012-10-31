@@ -309,12 +309,12 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
         {
             List<string> resp = new List<string>();
 
-            foreach(Dictionary<string, string> signature  in functionSignatures.Value)
+            foreach (Dictionary<string, string> signature in functionSignatures.Value)
             {
                 List<string> args = new List<string>();
-                foreach(string arg in signature.Keys)
+                foreach (string arg in signature.Keys)
                 {
-                    if(!arg.StartsWith(":"))
+                    if (!arg.StartsWith(":"))
                         args.Add(string.Format("{1} {0}", arg, signature[arg]));
                 }
 
