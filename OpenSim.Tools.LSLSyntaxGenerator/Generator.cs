@@ -267,6 +267,8 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
             return resp;
         }
 
+        #region Output formats
+
         /// <summary>
         /// JSON serialisation
         /// </summary>
@@ -456,5 +458,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 
             return string.Join(hideDocumented ? "" : "\n", output.ToArray()).Trim();
         }
+
+        #endregion
     }
 }
