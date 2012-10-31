@@ -25,6 +25,65 @@ An example of the JSON serialisation:
 }
 ```
 
+## With --include-script-modules
+An example of the JSON serialisation of a script module, using the
+[Math Module](https://github.com/SignpostMarv/TSU.CCIR.OpenSim.Math)
+as an example:
+```javascript
+{
+	"TeessideUniversity.CCIR.OpenSim.MathModule" : {
+		"mathVecMultiply" : [{
+			":return":"Vector3",
+			"a":"Vector3",
+			"b":"Vector3"
+		}],
+		"mathVecDivide" : [{
+			":return":"Vector3",
+			"a":"Vector3",
+			"b":"Vector3"
+		}],
+		"mathVecFloor" : [{
+			":return":"Vector3",
+			"a":"Vector3"
+		}],
+		"mathVecRound" : [{
+			":return":"Vector3",
+			"a":"Vector3"
+		}],
+		"mathVecCeil" : [{
+			":return":"Vector3",
+			"a":"Vector3"
+		}],
+		"mathVecMin" : [{
+			":return":"Vector3",
+			"a":"Vector3",
+			"b":"Single"
+		}],
+		"mathVecMax" : [{
+			":return":"Vector3",
+			"a":"Vector3",
+			"b":"Single"
+		}],
+		"mathVecVolume" : [{
+			":return":"Single",
+			"a":"Vector3"
+		}],
+		"mathFibonacci" : [{
+			":return":"Object[]",
+			"n":"Int32",
+			"length":"Int32"
+		}]
+	},
+	"ScriptConstants" : [
+		"MATH_PHI",
+		"MATH_PSI",
+		"MATH_TAU",
+		"MATH_TAU_BY_TWO",
+		"MATH_TWO_TAU"
+	]
+}
+```
+
 *	The first-level key indicates the script API
 *	The second-level key indicates the function name
 *	A function definition consists of an array of one or more maps with each
@@ -49,6 +108,10 @@ An example of the JSON serialisation:
 *	__--function__ is an optional parameter used to restrict output to only
 	the named function. For example, __--function=osListenRegex__ would
 	restrict output to just osListenRegex.
+
+## --include-script-modules
+*	__--include-script-modules__ is an optional flag used to include functions
+	and constants added via script modules in the output.
 
 # Support
 Support can be obtained from SignpostMarv, either via the 

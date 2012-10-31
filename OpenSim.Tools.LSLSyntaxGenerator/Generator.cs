@@ -32,11 +32,14 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Linq;
+using System.Linq.Expressions;
 
 using Nini.Util;
 
 using OpenMetaverse.StructuredData;
 
+using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.ScriptEngine.Shared.ScriptBase;
 using OpenSim.Region.ScriptEngine.Shared.Api.Interfaces;
 
@@ -44,6 +47,12 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 {
     class LSLSyntaxGenerator
     {
+        /// <summary>
+        /// Indicates whether functions & constants from region modules are
+        /// included in the output.
+        /// </summary>
+        public static bool IncludeScriptModules { get; private set; }
+
         /// <summary>
         /// Generates and writes the LSL Syntax helper data to stdout
         /// </summary>
@@ -55,6 +64,7 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
 
             string format = argv["format"] != null ? argv["format"].ToLower() : "json";
             string function = argv["function"] != null ? argv["function"].ToLower() : string.Empty;
+            IncludeScriptModules = argsList.Contains("--include-script-modules");
 
             switch (format)
             {
@@ -119,6 +129,61 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                 output[API] = GetMethods(API);
 
             output["ScriptConstants"] = ScriptConstants();
+
+            if (IncludeScriptModules)
+            {
+                foreach (Assembly assembly in GetScriptModules())
+                {
+                    foreach (Type type in assembly.GetTypes())
+                    {
+                        if (type.GetInterfaces().Contains(
+                                typeof(IRegionModuleBase)))
+                        {
+                            string typeLabel = type.FullName;
+                            List<string> excludes = new List<string>(0);
+                            if (ExcludedFromOutput.ContainsKey(typeLabel))
+                                excludes = ExcludedFromOutput[typeLabel];
+
+
+
+                            Dictionary<string, List<Dictionary<string, string>>> resp;
+                            resp = new Dictionary<string, List<Dictionary<string, string>>>();
+                            foreach (MethodInfo method in type.GetMethods(
+                                    BindingFlags.Public |
+                                    BindingFlags.Instance |
+                                    BindingFlags.Static))
+                            {
+                                if (excludes.Contains(method.Name))
+                                    continue;
+
+                                if (method.GetCustomAttributes(
+                                        typeof(ScriptInvocationAttribute),
+                                        true).Any())
+                                {
+                                    Dictionary<string, string> temp;
+                                    temp = new Dictionary<string, string>{
+                                        {":return", method.ReturnType.Name}
+                                    };
+
+                                    // script invocations are required to
+                                    // include two parameters. These aren't
+                                    // part of the user-facing definition.
+                                    foreach (ParameterInfo param in method.GetParameters().Skip(2))
+                                        temp[param.Name] = param.ParameterType.Name;
+
+                                    if (!resp.ContainsKey(method.Name))
+                                        resp[method.Name] = new List<Dictionary<string, string>>();
+
+                                    resp[method.Name].Add(temp);
+                                }
+                            }
+
+                            if (resp.Count > 0)
+                                output[typeLabel] = resp;
+                        }
+                    }
+                }
+            }
 
             return output;
         }
@@ -262,9 +327,97 @@ namespace TeessideUniversity.CCIR.OpenSim.Tools
                     resp.Add(field.Name);
             }
 
+            if (IncludeScriptModules)
+            {
+                List<Assembly> scriptModules = GetScriptModules();
+                foreach (Assembly assembly in scriptModules)
+                {
+                    foreach (Type type in assembly.GetTypes())
+                    {
+                        if (type.GetInterfaces().Contains(
+                                typeof(IRegionModuleBase)))
+                        {
+                            foreach (FieldInfo field in type.GetFields(
+                                    BindingFlags.Public |
+                                    BindingFlags.Static |
+                                    BindingFlags.Instance))
+                            {
+                                if (field.GetCustomAttributes(
+                                        typeof(ScriptConstantAttribute),
+                                        true).Any())
+                                {
+                                    resp.Add(field.Name);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             resp.Sort();
 
             return resp;
+        }
+
+        private static List<Assembly> GetScriptModules()
+        {
+            DirectoryInfo di = new DirectoryInfo(Path.GetDirectoryName(
+                    Assembly.GetExecutingAssembly().Location));
+
+            List<Assembly> ret = new List<Assembly>();
+
+            foreach (FileInfo fi in di.GetFiles("*.dll"))
+            {
+                Assembly assembly;
+                try
+                {
+                    assembly = Assembly.LoadFile(fi.FullName);
+                }
+                catch (BadImageFormatException e)
+                {
+                    continue;
+                }
+
+                bool isScriptModule = false;
+                foreach (Type type in assembly.GetTypes())
+                {
+                    if (type.IsClass && type.IsPublic &&
+                            type.GetInterfaces().Contains(
+                            typeof(IRegionModuleBase)))
+                    {
+                        foreach (MethodInfo method in type.GetMethods(
+                                BindingFlags.Public | BindingFlags.Instance |
+                                BindingFlags.Static))
+                        {
+                            if (method.GetCustomAttributes(
+                                    typeof(ScriptInvocationAttribute),
+                                    true).Any())
+                            {
+                                isScriptModule = true;
+                                break;
+                            }
+                        }
+                        if (isScriptModule)
+                            break;
+
+                        foreach (FieldInfo field in type.GetFields(
+                                BindingFlags.Public | BindingFlags.Static |
+                                BindingFlags.Instance))
+                        {
+                            if (field.GetCustomAttributes(
+                                    typeof(ScriptConstantAttribute), true).Any())
+                            {
+                                isScriptModule = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (isScriptModule)
+                    ret.Add(assembly);
+            }
+
+            return ret;
         }
 
         #region Output formats
